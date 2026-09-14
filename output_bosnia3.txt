@@ -210,54 +210,24 @@ Total: 205
 247 Zambia (S)
 248 Zimbabwe (S)
 
-2. Missing from all 3 suspension lists
-======================================
-Countries from the 248-country master list that are NOT suspended by BH Posta, Mostar, or Srpske.
-Total: 43
+2. Missing from all 3 text files
+================================
+Countries from the 248-country master list that are NOT LISTED on the BH Posta, Mostar, or Srpske text files.
+Total: 13
 
-8 Anguilla
-13 Aruba
-25 Bermuda
-28 Bonaire, Sint Eustatius and Saba
-41 Cayman Islands
-46 Christmas Island
-47 Cocos Islands
-52 Cook Islands
-57 Curaçao
-72 Falkland Islands /Malvinas
-73 Faroe Islands
-77 French Guiana
-78 French Polynesia
-85 Gibraltar
-87 Greenland
-89 Guadeloupe
-90 Guam
-92 Guernsey
-98 Hong Kong
-106 Isle of Man
-118 Kosovo
-119 Kuwait
-130 Macao
-138 Martinique
-141 Mayotte
-143 Micronesia
-148 Montserrat
-156 New Caledonia
-161 Niue
-162 Norfolk Island
-163 Northern Mariana Islands
-175 Pitcairn
-178 Puerto Rico
-180 Réunion
-185 Saint Helena, Ascension and Tristan da Cunha
-189 Saint Pierre & Miquelon
-200 Sint Maarten
-206 South Georgia and S. Sandwich Islands
-222 Tokelau
-228 Turks and Caicos Islands
-242 Virgin Islands (UK)
-243 Virgin Islands of the USA
-244 Wallis & Futuna
+2 Åland Islands
+9 Antarctica
+29 Bosnia-Herzegovina
+32 British Indian Ocean Territory
+79 French Southern Territories
+111 Jersey
+169 Palestine
+184 Saint Barthélemy
+188 Saint Martin
+207 South Sudan
+212 Svalbard and Jan Mayen
+236 U.S. Minor Outlying Islands
+245 Western Sahara
 
 3. BH Posta suspensions
 =======================
