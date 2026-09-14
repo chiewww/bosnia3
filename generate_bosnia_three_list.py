@@ -1,563 +1,85 @@
-import re
-from pathlib import Path
-from urllib.request import Request, urlopen
+name: Bosnia Three List
 
+on:
 
-# ============================================================
-# SOURCE FILES
-# ============================================================
+  # Check the three source files every hour.
+  schedule:
+    - cron: "0 * * * *"
 
-BH_URL = (
-    "https://raw.githubusercontent.com/chiewww/BHposta/main/"
-    "bh_posta_countries.txt"
-)
+  # Allow a manual run from GitHub Actions.
+  workflow_dispatch:
 
-MOSTAR_URL = (
-    "https://raw.githubusercontent.com/chiewww/mostarpost/main/"
-    "output.txt"
-)
+permissions:
+  contents: write
 
-SRPSKE_URL = (
-    "https://raw.githubusercontent.com/chiewww/srpskepost/main/"
-    "output.txt"
-)
+# Prevent two runs from updating the repository simultaneously.
+concurrency:
+  group: bosnia-three-list
+  cancel-in-progress: false
 
 
-# ============================================================
-# MASTER LIST — 248 POSTCROSSING DESTINATIONS
-# ============================================================
+jobs:
 
-MASTER_TEXT = r"""
-1|Afghanistan
-2|Åland Islands
-3|Albania
-4|Algeria
-5|American Samoa
-6|Andorra
-7|Angola
-8|Anguilla
-9|Antarctica
-10|Antigua & Barbuda
-11|Argentina
-12|Armenia
-13|Aruba
-14|Australia
-15|Austria
-16|Azerbaijan
-17|Bahamas
-18|Bahrain
-19|Bangladesh
-20|Barbados
-21|Belarus
-22|Belgium
-23|Belize
-24|Benin
-25|Bermuda
-26|Bhutan
-27|Bolivia
-28|Bonaire, Sint Eustatius and Saba
-29|Bosnia-Herzegovina
-30|Botswana
-31|Brazil
-32|British Indian Ocean Territory
-33|Brunei
-34|Bulgaria
-35|Burkina Faso
-36|Burundi
-37|Cabo Verde
-38|Cambodia
-39|Cameroon
-40|Canada
-41|Cayman Islands
-42|Central African Republic
-43|Chad
-44|Chile
-45|China
-46|Christmas Island
-47|Cocos Islands
-48|Colombia
-49|Comoros
-50|Congo
-51|Dem. Rep. Of Congo
-52|Cook Islands
-53|Costa Rica
-54|Côte d'Ivoire
-55|Croatia
-56|Cuba
-57|Curaçao
-58|Cyprus
-59|Czechia
-60|Denmark
-61|Djibouti
-62|Dominica
-63|Dominican Republic
-64|Ecuador
-65|Egypt
-66|El Salvador
-67|Equatorial Guinea
-68|Eritrea
-69|Estonia
-70|Eswatini /Swaziland
-71|Ethiopia
-72|Falkland Islands /Malvinas
-73|Faroe Islands
-74|Fiji
-75|Finland
-76|France
-77|French Guiana
-78|French Polynesia
-79|French Southern Territories
-80|Gabon
-81|Gambia
-82|Georgia
-83|Germany
-84|Ghana
-85|Gibraltar
-86|Greece
-87|Greenland
-88|Grenada
-89|Guadeloupe
-90|Guam
-91|Guatemala
-92|Guernsey
-93|Guinea
-94|Guinea-Bissau
-95|Guyana
-96|Haiti
-97|Honduras
-98|Hong Kong
-99|Hungary
-100|Iceland
-101|India
-102|Indonesia
-103|Iran
-104|Iraq
-105|Ireland
-106|Isle of Man
-107|Israel
-108|Italy
-109|Jamaica
-110|Japan
-111|Jersey
-112|Jordan
-113|Kazakhstan
-114|Kenya
-115|Kiribati
-116|Korea(North)
-117|Korea(South)
-118|Kosovo
-119|Kuwait
-120|Kyrgyzstan
-121|Laos
-122|Latvia
-123|Lebanon
-124|Lesotho
-125|Liberia
-126|Libya
-127|Liechtenstein
-128|Lithuania
-129|Luxembourg
-130|Macao
-131|Madagascar
-132|Malawi
-133|Malaysia
-134|Maldives
-135|Mali
-136|Malta
-137|Marshall Islands
-138|Martinique
-139|Mauritania
-140|Mauritius
-141|Mayotte
-142|Mexico
-143|Micronesia
-144|Moldova
-145|Monaco
-146|Mongolia
-147|Montenegro
-148|Montserrat
-149|Morocco
-150|Mozambique
-151|Myanmar
-152|Namibia
-153|Nauru / Naoero
-154|Nepal
-155|Netherlands
-156|New Caledonia
-157|New Zealand
-158|Nicaragua
-159|Niger
-160|Nigeria
-161|Niue
-162|Norfolk Island
-163|Northern Mariana Islands
-164|North Macedonia
-165|Norway
-166|Oman
-167|Pakistan
-168|Palau
-169|Palestine
-170|Panama
-171|Papua New Guinea
-172|Paraguay
-173|Peru
-174|Philippines
-175|Pitcairn
-176|Poland
-177|Portugal
-178|Puerto Rico
-179|Qatar
-180|Réunion
-181|Romania
-182|Russia
-183|Rwanda
-184|Saint Barthélemy
-185|Saint Helena, Ascension and Tristan da Cunha
-186|Saint Kitts and Nevis
-187|Saint Lucia
-188|Saint Martin
-189|Saint Pierre & Miquelon
-190|Saint Vincent and the Grenadines
-191|Samoa
-192|San Marino
-193|Sao Tome and Principe
-194|Saudi Arabia
-195|Senegal
-196|Serbia
-197|Seychelles
-198|Sierra Leone
-199|Singapore
-200|Sint Maarten
-201|Slovakia
-202|Slovenia
-203|Solomon Islands
-204|Somalia
-205|South Africa
-206|South Georgia and S. Sandwich Islands
-207|South Sudan
-208|Spain
-209|Sri Lanka
-210|Sudan
-211|Suriname
-212|Svalbard and Jan Mayen
-213|Sweden
-214|Switzerland
-215|Syria
-216|Taiwan
-217|Tajikistan
-218|Tanzania
-219|Thailand
-220|Timor-Leste
-221|Togo
-222|Tokelau
-223|Tonga
-224|Trinidad and Tobago
-225|Tunisia
-226|Turkey
-227|Turkmenistan
-228|Turks and Caicos Islands
-229|Tuvalu
-230|Uganda
-231|Ukraine
-232|United Arab Emirates
-233|United Kingdom
-234|Uruguay
-235|U.S.A.
-236|U.S. Minor Outlying Islands
-237|Uzbekistan
-238|Vanuatu
-239|Vatican
-240|Venezuela
-241|Vietnam
-242|Virgin Islands (UK)
-243|Virgin Islands of the USA
-244|Wallis & Futuna
-245|Western Sahara
-246|Yemen
-247|Zambia
-248|Zimbabwe
-"""
+  update:
+    runs-on: ubuntu-latest
 
+    steps:
 
-MASTER = {}
+      # ------------------------------------------------------
+      # Get the current bosnia3 repository
+      # ------------------------------------------------------
 
-for line in MASTER_TEXT.strip().splitlines():
-    number, name = line.split("|", 1)
-    MASTER[int(number)] = name
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-MASTER_NUMBERS = set(MASTER.keys())
 
+      # ------------------------------------------------------
+      # Install Python
+      # ------------------------------------------------------
 
-# ============================================================
-# DOWNLOAD
-# ============================================================
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
 
-def download(url):
-    print(f"Downloading: {url}")
 
-    request = Request(
-        url,
-        headers={"User-Agent": "Mozilla/5.0"}
-    )
+      # ------------------------------------------------------
+      # Generate bosnia_three_list.txt
+      # ------------------------------------------------------
 
-    with urlopen(request, timeout=30) as response:
-        return response.read().decode("utf-8", errors="replace")
+      - name: Generate bosnia_three_list.txt
+        run: |
+          python generate_bosnia_three_list.py
 
 
-# ============================================================
-# EXTRACT POSTCROSSING NUMBERS
-# ============================================================
+      # ------------------------------------------------------
+      # Commit and push only when the file changed
+      # ------------------------------------------------------
 
-def extract_numbers(text):
-    """
-    Return standalone numbers from 1 through 248.
-    """
+      - name: Update GitHub
+        run: |
 
-    numbers = re.findall(
-        r"(?<!\d)(\d{1,3})(?!\d)",
-        text
-    )
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-    return {
-        int(number)
-        for number in numbers
-        if 1 <= int(number) <= 248
-    }
+          git add bosnia_three_list.txt
 
+          # If nothing changed, finish successfully.
+          if git diff --cached --quiet; then
+            echo "No changes detected."
+            exit 0
+          fi
 
-# ============================================================
-# BH POSTA
-#
-# Suspended destinations are those under:
-#
-#   SUSPENDED COUNTRIES
-#   UNKNOWN COUNTRIES
-# ============================================================
+          # Commit the newly generated list.
+          git commit -m "Update bosnia_three_list"
 
-def extract_bh_posta(text):
+          # Get the latest version of main.
+          git fetch origin main
 
-    upper = text.upper()
+          # Put our commit on top of the latest main.
+          git rebase origin/main
 
-    positions = []
-
-    for heading in [
-        "SUSPENDED COUNTRIES",
-        "UNKNOWN COUNTRIES"
-    ]:
-        position = upper.find(heading)
-
-        if position >= 0:
-            positions.append(position)
-
-    if not positions:
-        raise RuntimeError(
-            "BH Posta: Could not find "
-            "'SUSPENDED COUNTRIES' or 'UNKNOWN COUNTRIES'."
-        )
-
-    # Take everything beginning with the first relevant section.
-    relevant = text[min(positions):]
-
-    # If an available/active section follows, stop before it.
-    relevant_upper = relevant.upper()
-
-    stop_positions = []
-
-    for heading in [
-        "AVAILABLE COUNTRIES",
-        "COUNTRIES AVAILABLE",
-        "ACTIVE COUNTRIES"
-    ]:
-        position = relevant_upper.find(heading)
-
-        if position > 0:
-            stop_positions.append(position)
-
-    if stop_positions:
-        relevant = relevant[:min(stop_positions)]
-
-    return extract_numbers(relevant)
-
-
-# ============================================================
-# MOSTAR
-#
-# Definition:
-#
-# Master 248 destinations that are NOT on the Mostar file.
-# ============================================================
-
-def extract_mostar(text):
-
-    available = extract_numbers(text)
-
-    return MASTER_NUMBERS - available
-
-
-# ============================================================
-# SRPSKE
-#
-# Definition:
-#
-# Destinations in the UKUPNO section.
-# ============================================================
-
-def extract_srpske(text):
-
-    upper = text.upper()
-
-    position = upper.find("UKUPNO")
-
-    if position < 0:
-        raise RuntimeError(
-            "Srpske: Could not find 'UKUPNO'."
-        )
-
-    relevant = text[position:]
-
-    return extract_numbers(relevant)
-
-
-# ============================================================
-# DOWNLOAD ALL THREE FILES
-# ============================================================
-
-bh_text = download(BH_URL)
-mostar_text = download(MOSTAR_URL)
-srpske_text = download(SRPSKE_URL)
-
-
-# ============================================================
-# CALCULATE THE THREE SUSPENSION SETS
-# ============================================================
-
-bh = extract_bh_posta(bh_text)
-mostar = extract_mostar(mostar_text)
-srpske = extract_srpske(srpske_text)
-
-
-# Only destinations that exist in the master list are allowed.
-bh &= MASTER_NUMBERS
-mostar &= MASTER_NUMBERS
-srpske &= MASTER_NUMBERS
-
-
-# ============================================================
-# SUSPENDED AT LEAST ONE
-# ============================================================
-
-suspended_at_least_one = bh | mostar | srpske
-
-
-# ============================================================
-# CREATE OUTPUT
-# ============================================================
-
-output = []
-
-output.append("BOSNIA THREE LIST")
-output.append("")
-
-
-# ------------------------------------------------------------
-# 1. SUSPENDED AT LEAST ONE
-# ------------------------------------------------------------
-
-output.append("1. SUSPENDED AT LEAST ONE")
-output.append(
-    f"TOTAL: {len(suspended_at_least_one)}"
-)
-output.append("")
-
-for number in sorted(suspended_at_least_one):
-
-    letters = []
-
-    if number in bh:
-        letters.append("B")
-
-    if number in mostar:
-        letters.append("M")
-
-    if number in srpske:
-        letters.append("S")
-
-    output.append(
-        f"{number} {MASTER[number]} "
-        f"({', '.join(letters)})"
-    )
-
-
-# ------------------------------------------------------------
-# 2. BH POSTA
-# ------------------------------------------------------------
-
-output.append("")
-output.append("2. SUSPENDED DESTINATIONS FOR BH POSTA")
-output.append(f"TOTAL: {len(bh)}")
-output.append("")
-
-for number in sorted(bh):
-    output.append(
-        f"{number} {MASTER[number]}"
-    )
-
-
-# ------------------------------------------------------------
-# 3. MOSTAR
-# ------------------------------------------------------------
-
-output.append("")
-output.append("3. SUSPENDED DESTINATIONS FOR MOSTAR")
-output.append(f"TOTAL: {len(mostar)}")
-output.append("")
-
-for number in sorted(mostar):
-    output.append(
-        f"{number} {MASTER[number]}"
-    )
-
-
-# ------------------------------------------------------------
-# 4. SRPSKE
-# ------------------------------------------------------------
-
-output.append("")
-output.append("4. SUSPENDED DESTINATIONS FOR SRPSKE")
-output.append(f"TOTAL: {len(srpske)}")
-output.append("")
-
-for number in sorted(srpske):
-    output.append(
-        f"{number} {MASTER[number]}"
-    )
-
-
-# ============================================================
-# WRITE OUTPUT FILE
-# ============================================================
-
-output_file = Path("bosnia_three_list.txt")
-
-output_file.write_text(
-    "\n".join(output) + "\n",
-    encoding="utf-8"
-)
-
-
-# ============================================================
-# SUMMARY
-# ============================================================
-
-print()
-print("=" * 50)
-print("bosnia_three_list.txt generated successfully")
-print("=" * 50)
-print(f"BH Posta:               {len(bh)}")
-print(f"Mostar:                 {len(mostar)}")
-print(f"Srpske:                 {len(srpske)}")
-print(
-    f"Suspended at least one: "
-    f"{len(suspended_at_least_one)}"
-)
-print("=" * 50)
+          # Push the updated file.
+          git push origin HEAD:main
