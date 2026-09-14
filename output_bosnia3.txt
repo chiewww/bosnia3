@@ -125,20 +125,10 @@ Total: 117
 2. Missing from all 3 text files
 ================================
 Countries from the 248-country master list that are NOT LISTED on the BH Posta, Mostar, or Srpske text files.
-Total: 12
+Total: 2
 
 2 Åland Islands
 9 Antarctica
-32 British Indian Ocean Territory
-79 French Southern Territories
-111 Jersey
-169 Palestine
-184 Saint Barthélemy
-188 Saint Martin
-207 South Sudan
-212 Svalbard and Jan Mayen
-236 U.S. Minor Outlying Islands
-245 Western Sahara
 
 3. BH Posta suspensions
 =======================
