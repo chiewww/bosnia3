@@ -1,19 +1,30 @@
 import re
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 
 # ============================================================
 # SOURCE FILES
 # ============================================================
 
-BH_URL = "https://raw.githubusercontent.com/chiewww/BHposta/main/bh_posta_countries.txt"
-MOSTAR_URL = "https://raw.githubusercontent.com/chiewww/mostarpost/main/output.txt"
-SRPSKE_URL = "https://raw.githubusercontent.com/chiewww/srpskepost/main/output.txt"
+BH_URL = (
+    "https://raw.githubusercontent.com/chiewww/BHposta/main/"
+    "bh_posta_countries.txt"
+)
+
+MOSTAR_URL = (
+    "https://raw.githubusercontent.com/chiewww/mostarpost/main/"
+    "output.txt"
+)
+
+SRPSKE_URL = (
+    "https://raw.githubusercontent.com/chiewww/srpskepost/main/"
+    "output.txt"
+)
 
 
 # ============================================================
-# MASTER LIST — POSTCROSSING NUMBERS
+# MASTER LIST — 248 POSTCROSSING DESTINATIONS
 # ============================================================
 
 MASTER_TEXT = r"""
@@ -274,15 +285,17 @@ for line in MASTER_TEXT.strip().splitlines():
     number, name = line.split("|", 1)
     MASTER[int(number)] = name
 
+MASTER_NUMBERS = set(MASTER.keys())
+
 
 # ============================================================
-# DOWNLOAD SOURCE FILES
+# DOWNLOAD
 # ============================================================
 
 def download(url):
-    print("Downloading:", url)
+    print(f"Downloading: {url}")
 
-    request = __import__("urllib.request", fromlist=["Request"]).Request(
+    request = Request(
         url,
         headers={"User-Agent": "Mozilla/5.0"}
     )
@@ -291,160 +304,173 @@ def download(url):
         return response.read().decode("utf-8", errors="replace")
 
 
-bh_text = download(BH_URL)
-mostar_text = download(MOSTAR_URL)
-srpske_text = download(SRPSKE_URL)
-
-
 # ============================================================
 # EXTRACT POSTCROSSING NUMBERS
 # ============================================================
 
-def numbers_from_text(text):
+def extract_numbers(text):
     """
-    Extract numbers that appear as standalone integers.
+    Return standalone numbers from 1 through 248.
+    """
 
-    Only numbers 1-248 can become destinations.
-    """
+    numbers = re.findall(
+        r"(?<!\d)(\d{1,3})(?!\d)",
+        text
+    )
+
     return {
-        int(x)
-        for x in re.findall(r"(?<!\d)(\d{1,3})(?!\d)", text)
-        if 1 <= int(x) <= 248
+        int(number)
+        for number in numbers
+        if 1 <= int(number) <= 248
     }
 
 
 # ============================================================
 # BH POSTA
 #
-# Use destinations under:
+# Suspended destinations are those under:
+#
 #   SUSPENDED COUNTRIES
 #   UNKNOWN COUNTRIES
-#
-# Both categories are treated as unavailable/suspended.
 # ============================================================
 
-def extract_bh(text):
-    upper = text.upper()
+def extract_bh_posta(text):
 
-    wanted = [
-        "SUSPENDED COUNTRIES",
-        "UNKNOWN COUNTRIES",
-    ]
+    upper = text.upper()
 
     positions = []
 
-    for heading in wanted:
-        pos = upper.find(heading)
-        if pos >= 0:
-            positions.append(pos)
+    for heading in [
+        "SUSPENDED COUNTRIES",
+        "UNKNOWN COUNTRIES"
+    ]:
+        position = upper.find(heading)
+
+        if position >= 0:
+            positions.append(position)
 
     if not positions:
         raise RuntimeError(
-            "Could not find 'SUSPENDED COUNTRIES' or "
-            "'UNKNOWN COUNTRIES' in BH Posta file."
+            "BH Posta: Could not find "
+            "'SUSPENDED COUNTRIES' or 'UNKNOWN COUNTRIES'."
         )
 
-    # Extract from the first relevant heading onward.
+    # Take everything beginning with the first relevant section.
     relevant = text[min(positions):]
 
-    # Stop at obvious next major section if present.
+    # If an available/active section follows, stop before it.
     relevant_upper = relevant.upper()
-
-    stop_headings = [
-        "AVAILABLE COUNTRIES",
-        "COUNTRIES AVAILABLE",
-        "ACTIVE COUNTRIES",
-    ]
 
     stop_positions = []
 
-    for heading in stop_headings:
-        pos = relevant_upper.find(heading)
-        if pos > 0:
-            stop_positions.append(pos)
+    for heading in [
+        "AVAILABLE COUNTRIES",
+        "COUNTRIES AVAILABLE",
+        "ACTIVE COUNTRIES"
+    ]:
+        position = relevant_upper.find(heading)
+
+        if position > 0:
+            stop_positions.append(position)
 
     if stop_positions:
         relevant = relevant[:min(stop_positions)]
 
-    return numbers_from_text(relevant)
-
-
-bh = extract_bh(bh_text)
+    return extract_numbers(relevant)
 
 
 # ============================================================
 # MOSTAR
 #
 # Definition:
-# "Countries in the master 248 destinations that are not on
-# this file"
 #
-# Therefore:
-#   suspended = master destinations NOT appearing in Mostar file
+# Master 248 destinations that are NOT on the Mostar file.
 # ============================================================
 
-mostar_numbers_in_file = numbers_from_text(mostar_text)
+def extract_mostar(text):
 
-mostar = set(MASTER) - mostar_numbers_in_file
+    available = extract_numbers(text)
+
+    return MASTER_NUMBERS - available
 
 
 # ============================================================
 # SRPSKE
 #
 # Definition:
-# "Countries in the master 248 destinations that are not
-# available = UKUPNO"
 #
-# Extract the destination numbers from the UKUPNO section.
+# Destinations in the UKUPNO section.
 # ============================================================
 
 def extract_srpske(text):
+
     upper = text.upper()
 
-    pos = upper.find("UKUPNO")
+    position = upper.find("UKUPNO")
 
-    if pos < 0:
+    if position < 0:
         raise RuntimeError(
-            "Could not find 'UKUPNO' in Srpske file."
+            "Srpske: Could not find 'UKUPNO'."
         )
 
-    relevant = text[pos:]
+    relevant = text[position:]
 
-    return numbers_from_text(relevant)
+    return extract_numbers(relevant)
 
 
+# ============================================================
+# DOWNLOAD ALL THREE FILES
+# ============================================================
+
+bh_text = download(BH_URL)
+mostar_text = download(MOSTAR_URL)
+srpske_text = download(SRPSKE_URL)
+
+
+# ============================================================
+# CALCULATE THE THREE SUSPENSION SETS
+# ============================================================
+
+bh = extract_bh_posta(bh_text)
+mostar = extract_mostar(mostar_text)
 srpske = extract_srpske(srpske_text)
 
 
-# ============================================================
-# ONLY MASTER-LIST DESTINATIONS
-# ============================================================
-
-bh &= set(MASTER)
-mostar &= set(MASTER)
-srpske &= set(MASTER)
+# Only destinations that exist in the master list are allowed.
+bh &= MASTER_NUMBERS
+mostar &= MASTER_NUMBERS
+srpske &= MASTER_NUMBERS
 
 
 # ============================================================
 # SUSPENDED AT LEAST ONE
 # ============================================================
 
-union = bh | mostar | srpske
+suspended_at_least_one = bh | mostar | srpske
 
 
 # ============================================================
-# OUTPUT
+# CREATE OUTPUT
 # ============================================================
 
 output = []
 
 output.append("BOSNIA THREE LIST")
 output.append("")
+
+
+# ------------------------------------------------------------
+# 1. SUSPENDED AT LEAST ONE
+# ------------------------------------------------------------
+
 output.append("1. SUSPENDED AT LEAST ONE")
-output.append(f"TOTAL: {len(union)}")
+output.append(
+    f"TOTAL: {len(suspended_at_least_one)}"
+)
 output.append("")
 
-for number in sorted(union):
+for number in sorted(suspended_at_least_one):
+
     letters = []
 
     if number in bh:
@@ -457,9 +483,14 @@ for number in sorted(union):
         letters.append("S")
 
     output.append(
-        f"{number} {MASTER[number]} ({', '.join(letters)})"
+        f"{number} {MASTER[number]} "
+        f"({', '.join(letters)})"
     )
 
+
+# ------------------------------------------------------------
+# 2. BH POSTA
+# ------------------------------------------------------------
 
 output.append("")
 output.append("2. SUSPENDED DESTINATIONS FOR BH POSTA")
@@ -467,8 +498,14 @@ output.append(f"TOTAL: {len(bh)}")
 output.append("")
 
 for number in sorted(bh):
-    output.append(f"{number} {MASTER[number]}")
+    output.append(
+        f"{number} {MASTER[number]}"
+    )
 
+
+# ------------------------------------------------------------
+# 3. MOSTAR
+# ------------------------------------------------------------
 
 output.append("")
 output.append("3. SUSPENDED DESTINATIONS FOR MOSTAR")
@@ -476,8 +513,14 @@ output.append(f"TOTAL: {len(mostar)}")
 output.append("")
 
 for number in sorted(mostar):
-    output.append(f"{number} {MASTER[number]}")
+    output.append(
+        f"{number} {MASTER[number]}"
+    )
 
+
+# ------------------------------------------------------------
+# 4. SRPSKE
+# ------------------------------------------------------------
 
 output.append("")
 output.append("4. SUSPENDED DESTINATIONS FOR SRPSKE")
@@ -485,11 +528,13 @@ output.append(f"TOTAL: {len(srpske)}")
 output.append("")
 
 for number in sorted(srpske):
-    output.append(f"{number} {MASTER[number]}")
+    output.append(
+        f"{number} {MASTER[number]}"
+    )
 
 
 # ============================================================
-# WRITE FILE
+# WRITE OUTPUT FILE
 # ============================================================
 
 output_file = Path("bosnia_three_list.txt")
@@ -499,12 +544,20 @@ output_file.write_text(
     encoding="utf-8"
 )
 
+
+# ============================================================
+# SUMMARY
+# ============================================================
+
 print()
-print("========================================")
-print("bosnia_three_list.txt CREATED")
-print("========================================")
-print(f"BH Posta:          {len(bh)}")
-print(f"Mostar:            {len(mostar)}")
-print(f"Srpske:            {len(srpske)}")
-print(f"Suspended at least one: {len(union)}")
-print("========================================")
+print("=" * 50)
+print("bosnia_three_list.txt generated successfully")
+print("=" * 50)
+print(f"BH Posta:               {len(bh)}")
+print(f"Mostar:                 {len(mostar)}")
+print(f"Srpske:                 {len(srpske)}")
+print(
+    f"Suspended at least one: "
+    f"{len(suspended_at_least_one)}"
+)
+print("=" * 50)
