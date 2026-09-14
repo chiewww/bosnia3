@@ -313,15 +313,56 @@ def extract_number_from_line(line):
 
 
 def extract_all_listed_numbers(text, master_numbers):
-    numbers = set()
+    """
+    Return every master-list Postcrossing number that appears
+    anywhere in a source text file.
+
+    Supports formats such as:
+        1|Afganistan
+        1 Afganistan
+        1. Afganistan
+        1) Afganistan
+        1-Afganistan
+
+    ??? entries are ignored.
+
+    This function is for Section 2 only:
+    it determines whether a master-list destination is PRESENT
+    anywhere in the source file, regardless of whether it is
+    suspended, available, unknown, etc.
+    """
+
+    listed = set()
 
     for line in text.splitlines():
-        number = extract_number_from_line(line)
+        stripped = line.strip()
+
+        if not stripped:
+            continue
+
+        # Ignore unknown/non-numbered destinations
+        if stripped.startswith("???"):
+            continue
+
+        # BH Posta format: NUMBER|COUNTRY
+        if "|" in stripped:
+            number_text = stripped.split("|", 1)[0].strip()
+
+            if number_text.isdigit():
+                number = int(number_text)
+
+                if number in master_numbers:
+                    listed.add(number)
+
+            continue
+
+        # Other source formats
+        number = extract_number_from_line(stripped)
 
         if number is not None and number in master_numbers:
-            numbers.add(number)
+            listed.add(number)
 
-    return numbers
+    return listed
 
 
 def normalize_heading(line):
