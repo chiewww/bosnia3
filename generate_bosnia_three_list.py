@@ -333,47 +333,58 @@ def normalize_heading(line):
 
 def parse_bh_suspensions(text, master_numbers):
     """
-    BH Posta:
-    Suspended = destinations under SUSPENDED COUNTRIES
-    plus destinations under UNKNOWN COUNTRIES.
+    BH Posta suspended destinations are ONLY the destinations
+    listed under:
+
+        SUSPENDED COUNTRIES
+        UNKNOWN COUNTRIES
+
+    Rules:
+    - Combine both sections.
+    - Ignore ??? entries.
+    - Ignore UKUPNO / totals / headings.
+    - Only accept destination numbers from the master list.
+    - Remove duplicate Postcrossing numbers.
     """
 
     lines = text.splitlines()
-    suspended = set()
+    suspended_numbers = set()
 
-    headings = [
+    target_headings = {
         "SUSPENDED COUNTRIES",
         "UNKNOWN COUNTRIES",
-    ]
+    }
 
-    for target in headings:
-        in_section = False
+    current_section = None
 
-        for line in lines:
-            heading = normalize_heading(line)
+    for line in lines:
+        stripped = line.strip()
+        heading = normalize_heading(line)
 
-            if heading == target:
-                in_section = True
-                continue
+        # ----------------------------------------------------
+        # Start either of the two required BH Posta sections.
+        # ----------------------------------------------------
 
-            if not in_section:
-                continue
+        if heading in target_headings:
+            current_section = heading
+            continue
 
-            number = extract_number_from_line(line)
+        # ----------------------------------------------------
+        # If we are inside one of the two sections, ONLY
+        # numbered destination lines are relevant.
+        #
+        # Do NOT stop on uppercase text.
+        # ----------------------------------------------------
 
-            if number is not None and number in master_numbers:
-                suspended.add(number)
+        if current_section in target_headings:
 
-            # Only stop when another known major section begins.
-            if heading in {
-                "AVAILABLE COUNTRIES",
-                "ACTIVE COUNTRIES",
-                "COUNTRY LIST",
-                "SUMMARY",
-            }:
-                break
+            number = extract_number_from_line(stripped)
 
-    return suspended
+            if number is not None:
+                if number in master_numbers:
+                    suspended_numbers.add(number)
+
+    return suspended_numbers
 
 
 def parse_mostar_listed(text, master_numbers):
