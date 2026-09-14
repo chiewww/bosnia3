@@ -341,11 +341,11 @@ with urlopen(request, timeout=30) as response:
 
 def extract_number_from_line(line):
 """
-Extract a Postcrossing number only when it is the first
-meaningful token on the line.
+Extract a destination number only when the number is at
+the beginning of the line.
 
 ```
-Examples accepted:
+Accepted examples:
     1 Afghanistan
     1. Afghanistan
     1 - Afghanistan
@@ -372,7 +372,7 @@ return None
 
 # ============================================================
 
-# EXTRACT ALL MASTER DESTINATIONS LISTED IN A FILE
+# EXTRACT ALL LISTED DESTINATIONS
 
 # ============================================================
 
@@ -391,90 +391,25 @@ return numbers
 
 # ============================================================
 
-# FIND A SECTION HEADING
+# NORMALIZE HEADING
 
 # ============================================================
 
 def normalize_heading(line):
-"""
-Normalize headings so minor differences in whitespace,
-colon, or case do not break parsing.
-"""
-
-```
 value = line.strip().upper()
-
 value = re.sub(r"\s+", " ", value)
 value = value.rstrip(":").strip()
-
 return value
-```
 
 # ============================================================
 
-# GET LINES BELONGING TO A NAMED SECTION
-
-# ============================================================
-
-def get_section_lines(
-text,
-start_heading,
-stop_headings=None
-):
-"""
-Return lines after start_heading.
-
-```
-Parsing continues until one of the explicitly supplied
-stop headings is encountered.
-
-This deliberately does NOT treat every uppercase line as
-a section boundary.
-"""
-
-if stop_headings is None:
-    stop_headings = set()
-
-start_heading = normalize_heading(start_heading)
-stop_headings = {
-    normalize_heading(x)
-    for x in stop_headings
-}
-
-lines = text.splitlines()
-
-in_section = False
-result = []
-
-for line in lines:
-
-    heading = normalize_heading(line)
-
-    if not in_section:
-
-        if heading == start_heading:
-            in_section = True
-
-        continue
-
-    if heading in stop_headings:
-        break
-
-    result.append(line)
-
-return result
-```
-
-# ============================================================
-
-# BH POSTA SUSPENSIONS
+# BH POSTA
 
 # ============================================================
 
 def parse_bh_suspensions(text, master_numbers):
 """
-BH Posta suspended destinations are ONLY those listed
-under:
+BH Posta suspensions are ONLY destinations listed under:
 
 ```
     SUSPENDED COUNTRIES
@@ -482,45 +417,44 @@ under:
 
 Both sections are combined.
 
-??? destinations are ignored.
-Duplicate Postcrossing numbers are removed.
-#29 is already excluded through master_numbers.
+??? is ignored.
+Duplicate numbers are removed automatically.
 """
 
+lines = text.splitlines()
 suspended_numbers = set()
 
-# --------------------------------------------------------
-# IMPORTANT:
-#
-# Do not use "any uppercase line" as a section boundary.
-# BH Posta files can contain uppercase informational text.
-#
-# Instead, find the two named sections and stop only at
-# another clearly identified section heading.
-# --------------------------------------------------------
-
-known_other_headings = {
-    "AVAILABLE COUNTRIES",
-    "ACTIVE COUNTRIES",
-    "COUNTRIES",
-    "COUNTRY LIST",
-    "SUMMARY",
-    "TOTAL",
-}
-
-for heading in (
+relevant_headings = {
     "SUSPENDED COUNTRIES",
     "UNKNOWN COUNTRIES",
-):
+}
 
-    section_lines = get_section_lines(
-        text,
-        heading,
-        known_other_headings
-        - {normalize_heading(heading)}
-    )
+# Find each relevant section independently.
+for target_heading in relevant_headings:
 
-    for line in section_lines:
+    in_section = False
+
+    for line in lines:
+
+        heading = normalize_heading(line)
+
+        if heading == target_heading:
+            in_section = True
+            continue
+
+        if not in_section:
+            continue
+
+        # Stop ONLY at another obvious section heading.
+        # Do not stop merely because a line is uppercase.
+        if heading in {
+            "AVAILABLE COUNTRIES",
+            "ACTIVE COUNTRIES",
+            "COUNTRIES",
+            "COUNTRY LIST",
+            "SUMMARY",
+        }:
+            break
 
         number = extract_number_from_line(line)
 
@@ -541,8 +475,8 @@ return suspended_numbers
 
 def parse_mostar_listed(text, master_numbers):
 """
-Every master-list destination that appears as a numbered
-destination in the Mostar output is considered listed.
+All master destinations actually listed in the Mostar
+output file.
 """
 
 ```
@@ -554,8 +488,8 @@ return extract_all_listed_numbers(
 
 def parse_mostar_suspensions(text, master_numbers):
 """
-A Mostar suspension is a master-list destination that is
-NOT listed in the Mostar output.
+A Mostar suspension is any usable master destination
+that is NOT listed in the Mostar output file.
 """
 
 ```
@@ -569,29 +503,24 @@ return master_numbers - listed
 
 # ============================================================
 
-# SRPSKE SUSPENSIONS
+# SRPSKE
 
 # ============================================================
 
 def parse_srpske_suspensions(text, master_numbers):
 """
-Srpske suspended destinations are ONLY destinations
-listed under:
+Srpske suspensions are ONLY the destinations listed under:
 
 ```
     SUSPENDOVANE ZEMLJE
 
-UKUPNO is NEVER used to determine suspensions.
-
-IMPORTANT:
-UKUPNO is allowed to appear inside this section and does
-NOT terminate the section.
+UKUPNO is informational and is NEVER used to determine
+which countries are suspended.
 """
-
-suspended_numbers = set()
 
 lines = text.splitlines()
 
+suspended_numbers = set()
 in_suspended_section = False
 
 for line in lines:
@@ -599,7 +528,7 @@ for line in lines:
     heading = normalize_heading(line)
 
     # ----------------------------------------------------
-    # Start of the exact requested section.
+    # Start the requested section.
     # ----------------------------------------------------
 
     if heading == "SUSPENDOVANE ZEMLJE":
@@ -610,39 +539,32 @@ for line in lines:
         continue
 
     # ----------------------------------------------------
-    # UKUPNO is informational only.
-    #
-    # It MUST NOT end the section and MUST NOT itself be
-    # interpreted as a destination.
+    # UKUPNO is only a count.
+    # It does NOT end the section.
     # ----------------------------------------------------
 
     if heading.startswith("UKUPNO"):
         continue
 
     # ----------------------------------------------------
-    # Only stop at another clearly named section heading.
-    #
-    # Do NOT stop merely because a line is uppercase.
+    # Stop only at another known section heading.
     # ----------------------------------------------------
 
-    known_section_headings = {
+    if heading in {
         "DOZVOLJENE ZEMLJE",
         "DOZVOLJENE DRŽAVE",
         "DOZVOLJENE DRZAVE",
-        "ZABRANJENE ZEMLJE",
-        "ZABRANJENE DRŽAVE",
-        "ZABRANJENE DRZAVE",
         "OSTALE ZEMLJE",
         "OSTALE DRŽAVE",
         "OSTALE DRZAVE",
-        "UKUPNO",
-    }
-
-    if heading in known_section_headings:
+        "ZABRANJENE ZEMLJE",
+        "ZABRANJENE DRŽAVE",
+        "ZABRANJENE DRZAVE",
+    }:
         break
 
     # ----------------------------------------------------
-    # Read only numbered destinations.
+    # Read numbered destinations only.
     # ----------------------------------------------------
 
     number = extract_number_from_line(line)
@@ -687,7 +609,7 @@ def main():
 
 ```
 # --------------------------------------------------------
-# MASTER
+# MASTER LIST
 # --------------------------------------------------------
 
 master = parse_master_list()
@@ -699,7 +621,7 @@ print(
 )
 
 # --------------------------------------------------------
-# DOWNLOAD
+# DOWNLOAD SOURCE FILES
 # --------------------------------------------------------
 
 print("Downloading BH Posta...")
@@ -765,7 +687,7 @@ suspended_at_least_one = (
 # ========================================================
 # SECTION 2
 #
-# NOT LISTED anywhere in BH Posta, Mostar, or Srpske.
+# Master destinations NOT LISTED in ANY source file.
 # ========================================================
 
 all_listed_on_source_files = (
@@ -789,9 +711,9 @@ with open(
     encoding="utf-8"
 ) as file:
 
-    # ----------------------------------------------------
+    # ====================================================
     # 1. SUSPENDED AT LEAST ONE
-    # ----------------------------------------------------
+    # ====================================================
 
     title = "1. Suspended at least one"
 
@@ -833,9 +755,9 @@ with open(
 
     file.write("\n")
 
-    # ----------------------------------------------------
-    # 2. MISSING FROM ALL THREE
-    # ----------------------------------------------------
+    # ====================================================
+    # 2. MISSING FROM ALL 3 TEXT FILES
+    # ====================================================
 
     title = "2. Missing from all 3 text files"
 
@@ -862,9 +784,9 @@ with open(
 
     file.write("\n")
 
-    # ----------------------------------------------------
-    # 3. BH POSTA
-    # ----------------------------------------------------
+    # ====================================================
+    # 3. BH POSTA SUSPENSIONS
+    # ====================================================
 
     write_section(
         file,
@@ -873,9 +795,9 @@ with open(
         master
     )
 
-    # ----------------------------------------------------
-    # 4. MOSTAR
-    # ----------------------------------------------------
+    # ====================================================
+    # 4. MOSTAR SUSPENSIONS
+    # ====================================================
 
     write_section(
         file,
@@ -884,9 +806,9 @@ with open(
         master
     )
 
-    # ----------------------------------------------------
-    # 5. SRPSKE
-    # ----------------------------------------------------
+    # ====================================================
+    # 5. SRPSKE SUSPENSIONS
+    # ====================================================
 
     title = "5. Srpske suspensions"
 
@@ -958,8 +880,10 @@ print(
 )
 
 print()
-print(f"Output file: {OUTPUT_FILE}")
-```
+print(
+    f"Output file: {OUTPUT_FILE}"
+)
+
 
 if **name** == "**main**":
 main()
