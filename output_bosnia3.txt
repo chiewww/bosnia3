@@ -2,43 +2,125 @@
 =========================
 Countries suspended by BH Posta, Mostar, and/or Srpske.
 B = BH Posta, M = Mostar, S = Srpske
-Total: 35
+Total: 117
 
-1 Afghanistan (M)
+1 Afghanistan (B, M)
 2 Åland Islands (M)
-5 American Samoa (S)
+5 American Samoa (B, S)
+6 Andorra (B)
+8 Anguilla (B)
 9 Antarctica (M)
-18 Bahrain (S)
-26 Bhutan (S)
-32 British Indian Ocean Territory (M)
-79 French Southern Territories (M)
-84 Ghana (M)
+10 Antigua & Barbuda (B)
+13 Aruba (B)
+17 Bahamas (B)
+18 Bahrain (B, S)
+20 Barbados (B)
+25 Bermuda (B)
+26 Bhutan (B, S)
+28 Bonaire, Sint Eustatius and Saba (B)
+32 British Indian Ocean Territory (B, M)
+37 Cabo Verde (B)
+41 Cayman Islands (B)
+46 Christmas Island (B)
+47 Cocos Islands (B)
+49 Comoros (B)
+50 Congo (B)
+51 Dem. Rep. Of Congo (B)
+52 Cook Islands (B)
+56 Cuba (B)
+57 Curaçao (B)
+62 Dominica (B)
+63 Dominican Republic (B)
+64 Ecuador (B)
+67 Equatorial Guinea (B)
+71 Ethiopia (B)
+72 Falkland Islands /Malvinas (B)
+73 Faroe Islands (B)
+74 Fiji (B)
+77 French Guiana (B)
+78 French Polynesia (B)
+79 French Southern Territories (B, M)
+84 Ghana (B, M)
+85 Gibraltar (B)
+87 Greenland (B)
+88 Grenada (B)
+89 Guadeloupe (B)
+90 Guam (B)
+92 Guernsey (B)
 96 Haiti (S)
-103 Iran (S)
-104 Iraq (S)
-107 Israel (M)
-111 Jersey (M)
-115 Kiribati (S)
+103 Iran (B, S)
+104 Iraq (B, S)
+106 Isle of Man (B)
+107 Israel (B, M)
+109 Jamaica (B)
+111 Jersey (B, M)
+114 Kenya (B)
+115 Kiribati (B, S)
 116 Korea(North) (S)
 120 Kyrgyzstan (S)
-123 Lebanon (S)
+123 Lebanon (B, S)
+124 Lesotho (B)
 126 Libya (M, S)
+130 Macao (B)
+134 Maldives (B)
+137 Marshall Islands (B)
+138 Martinique (B)
 139 Mauritania (M)
-153 Nauru / Naoero (S)
-169 Palestine (M)
+141 Mayotte (B)
+143 Micronesia (B)
+145 Monaco (B)
+148 Montserrat (B)
+153 Nauru / Naoero (B, S)
+156 New Caledonia (B)
+161 Niue (B)
+162 Norfolk Island (B)
+163 Northern Mariana Islands (B)
+166 Oman (B)
+168 Palau (B)
+169 Palestine (B, M)
 171 Papua New Guinea (S)
-184 Saint Barthélemy (M)
-188 Saint Martin (M)
-204 Somalia (M, S)
-207 South Sudan (M)
-210 Sudan (S)
-212 Svalbard and Jan Mayen (M)
-215 Syria (S)
-220 Timor-Leste (S)
-236 U.S. Minor Outlying Islands (M)
-240 Venezuela (S)
-245 Western Sahara (M)
-246 Yemen (M, S)
+172 Paraguay (B)
+173 Peru (B)
+175 Pitcairn (B)
+178 Puerto Rico (B)
+180 Réunion (B)
+184 Saint Barthélemy (B, M)
+185 Saint Helena, Ascension and Tristan da Cunha (B)
+186 Saint Kitts and Nevis (B)
+187 Saint Lucia (B)
+188 Saint Martin (B, M)
+189 Saint Pierre & Miquelon (B)
+190 Saint Vincent and the Grenadines (B)
+191 Samoa (B)
+192 San Marino (B)
+193 Sao Tome and Principe (B)
+197 Seychelles (B)
+200 Sint Maarten (B)
+203 Solomon Islands (B)
+204 Somalia (B, M, S)
+206 South Georgia and S. Sandwich Islands (B)
+207 South Sudan (B, M)
+210 Sudan (B, S)
+212 Svalbard and Jan Mayen (B, M)
+215 Syria (B, S)
+216 Taiwan (B)
+220 Timor-Leste (B, S)
+222 Tokelau (B)
+223 Tonga (B)
+224 Trinidad and Tobago (B)
+228 Turks and Caicos Islands (B)
+229 Tuvalu (B)
+234 Uruguay (B)
+236 U.S. Minor Outlying Islands (B, M)
+238 Vanuatu (B)
+239 Vatican (B)
+240 Venezuela (B, S)
+241 Vietnam (B)
+242 Virgin Islands (UK) (B)
+243 Virgin Islands of the USA (B)
+244 Wallis & Futuna (B)
+245 Western Sahara (B, M)
+246 Yemen (B, M, S)
 
 2. Missing from all 3 text files
 ================================
@@ -60,8 +142,117 @@ Total: 12
 
 3. BH Posta suspensions
 =======================
-Total: 0
+Total: 109
 
+1 Afghanistan
+5 American Samoa
+6 Andorra
+8 Anguilla
+10 Antigua & Barbuda
+13 Aruba
+17 Bahamas
+18 Bahrain
+20 Barbados
+25 Bermuda
+26 Bhutan
+28 Bonaire, Sint Eustatius and Saba
+32 British Indian Ocean Territory
+37 Cabo Verde
+41 Cayman Islands
+46 Christmas Island
+47 Cocos Islands
+49 Comoros
+50 Congo
+51 Dem. Rep. Of Congo
+52 Cook Islands
+56 Cuba
+57 Curaçao
+62 Dominica
+63 Dominican Republic
+64 Ecuador
+67 Equatorial Guinea
+71 Ethiopia
+72 Falkland Islands /Malvinas
+73 Faroe Islands
+74 Fiji
+77 French Guiana
+78 French Polynesia
+79 French Southern Territories
+84 Ghana
+85 Gibraltar
+87 Greenland
+88 Grenada
+89 Guadeloupe
+90 Guam
+92 Guernsey
+103 Iran
+104 Iraq
+106 Isle of Man
+107 Israel
+109 Jamaica
+111 Jersey
+114 Kenya
+115 Kiribati
+123 Lebanon
+124 Lesotho
+130 Macao
+134 Maldives
+137 Marshall Islands
+138 Martinique
+141 Mayotte
+143 Micronesia
+145 Monaco
+148 Montserrat
+153 Nauru / Naoero
+156 New Caledonia
+161 Niue
+162 Norfolk Island
+163 Northern Mariana Islands
+166 Oman
+168 Palau
+169 Palestine
+172 Paraguay
+173 Peru
+175 Pitcairn
+178 Puerto Rico
+180 Réunion
+184 Saint Barthélemy
+185 Saint Helena, Ascension and Tristan da Cunha
+186 Saint Kitts and Nevis
+187 Saint Lucia
+188 Saint Martin
+189 Saint Pierre & Miquelon
+190 Saint Vincent and the Grenadines
+191 Samoa
+192 San Marino
+193 Sao Tome and Principe
+197 Seychelles
+200 Sint Maarten
+203 Solomon Islands
+204 Somalia
+206 South Georgia and S. Sandwich Islands
+207 South Sudan
+210 Sudan
+212 Svalbard and Jan Mayen
+215 Syria
+216 Taiwan
+220 Timor-Leste
+222 Tokelau
+223 Tonga
+224 Trinidad and Tobago
+228 Turks and Caicos Islands
+229 Tuvalu
+234 Uruguay
+236 U.S. Minor Outlying Islands
+238 Vanuatu
+239 Vatican
+240 Venezuela
+241 Vietnam
+242 Virgin Islands (UK)
+243 Virgin Islands of the USA
+244 Wallis & Futuna
+245 Western Sahara
+246 Yemen
 
 4. Mostar suspensions
 =====================
