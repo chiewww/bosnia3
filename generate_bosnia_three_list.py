@@ -333,59 +333,77 @@ def normalize_heading(line):
 
 def parse_bh_suspensions(text, master_numbers):
     """
-    BH Posta suspended destinations are ONLY the destinations
-    listed under:
+    BH Posta suspensions are ONLY destinations listed under:
 
         SUSPENDED COUNTRIES
         UNKNOWN COUNTRIES
 
+    The BH file format is:
+
+        POSTCROSSING_NUMBER|COUNTRY_NAME
+
     Rules:
-    - Combine both sections.
-    - Ignore ??? entries.
-    - Ignore UKUPNO / totals / headings.
-    - Only accept destination numbers from the master list.
-    - Remove duplicate Postcrossing numbers.
+    - Combine SUSPENDED COUNTRIES + UNKNOWN COUNTRIES.
+    - Ignore entries where the number is ???.
+    - Ignore #29 Bosnia-Herzegovina because it is excluded from master_numbers.
+    - Remove duplicate Postcrossing numbers automatically.
     """
 
     lines = text.splitlines()
     suspended_numbers = set()
 
-    target_headings = {
-        "SUSPENDED COUNTRIES",
-        "UNKNOWN COUNTRIES",
-    }
-
-    current_section = None
+    in_relevant_section = False
 
     for line in lines:
-        stripped = line.strip()
         heading = normalize_heading(line)
 
-        # ----------------------------------------------------
-        # Start either of the two required BH Posta sections.
-        # ----------------------------------------------------
-
-        if heading in target_headings:
-            current_section = heading
+        # Start of a relevant section
+        if heading in {
+            "SUSPENDED COUNTRIES",
+            "UNKNOWN COUNTRIES",
+        }:
+            in_relevant_section = True
             continue
 
-        # ----------------------------------------------------
-        # If we are inside one of the two sections, ONLY
-        # numbered destination lines are relevant.
-        #
-        # Do NOT stop on uppercase text.
-        # ----------------------------------------------------
+        # UNKNOWN COUNTRIES is the final section we care about.
+        # Stop if another all-caps section heading appears after it.
+        if in_relevant_section:
+            stripped = line.strip()
 
-        if current_section in target_headings:
+            # Skip separator lines
+            if not stripped or set(stripped) == {"="}:
+                continue
 
-            number = extract_number_from_line(stripped)
+            # BH format: NUMBER|COUNTRY
+            if "|" not in stripped:
+                # If this is another obvious heading, stop.
+                if (
+                    stripped == stripped.upper()
+                    and len(stripped) > 3
+                    and not stripped.startswith("=")
+                ):
+                    in_relevant_section = False
+                continue
 
-            if number is not None:
-                if number in master_numbers:
-                    suspended_numbers.add(number)
+            number_text, country_name = stripped.split("|", 1)
+            number_text = number_text.strip()
+
+            # ??? entries are deliberately ignored
+            if number_text == "???":
+                continue
+
+            # Only accept an actual integer Postcrossing number
+            if not number_text.isdigit():
+                continue
+
+            number = int(number_text)
+
+            # Only master-list destinations count.
+            # This also automatically excludes Bosnia-Herzegovina (#29).
+            if number in master_numbers:
+                suspended_numbers.add(number)
 
     return suspended_numbers
-
 
 def parse_mostar_listed(text, master_numbers):
     return extract_all_listed_numbers(
