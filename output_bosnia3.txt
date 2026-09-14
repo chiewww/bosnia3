@@ -2,27 +2,43 @@
 =========================
 Countries suspended by BH Posta, Mostar, and/or Srpske.
 B = BH Posta, M = Mostar, S = Srpske
-Total: 19
+Total: 35
 
 1 Afghanistan (M)
 2 Åland Islands (M)
+5 American Samoa (S)
 9 Antarctica (M)
+18 Bahrain (S)
+26 Bhutan (S)
 32 British Indian Ocean Territory (M)
 79 French Southern Territories (M)
 84 Ghana (M)
+96 Haiti (S)
+103 Iran (S)
+104 Iraq (S)
 107 Israel (M)
 111 Jersey (M)
-126 Libya (M)
+115 Kiribati (S)
+116 Korea(North) (S)
+120 Kyrgyzstan (S)
+123 Lebanon (S)
+126 Libya (M, S)
 139 Mauritania (M)
+153 Nauru / Naoero (S)
 169 Palestine (M)
+171 Papua New Guinea (S)
 184 Saint Barthélemy (M)
 188 Saint Martin (M)
-204 Somalia (M)
+204 Somalia (M, S)
 207 South Sudan (M)
+210 Sudan (S)
 212 Svalbard and Jan Mayen (M)
+215 Syria (S)
+220 Timor-Leste (S)
 236 U.S. Minor Outlying Islands (M)
+240 Venezuela (S)
 245 Western Sahara (M)
-246 Yemen (M)
+246 Yemen (M, S)
 
 2. Missing from all 3 text files
 ================================
@@ -74,6 +90,25 @@ Total: 19
 5. Srpske suspensions
 =====================
 Suspended countries are ONLY those listed under 'SUSPENDOVANE ZEMLJE' in the Srpske output file.
-Total: 0
+Total: 19
 
+5 American Samoa
+18 Bahrain
+26 Bhutan
+96 Haiti
+103 Iran
+104 Iraq
+115 Kiribati
+116 Korea(North)
+120 Kyrgyzstan
+123 Lebanon
+126 Libya
+153 Nauru / Naoero
+171 Papua New Guinea
+204 Somalia
+210 Sudan
+215 Syria
+220 Timor-Leste
+240 Venezuela
+246 Yemen
 
