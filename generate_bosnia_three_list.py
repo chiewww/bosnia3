@@ -1,38 +1,13 @@
 import re
 from urllib.request import urlopen, Request
 
-# ============================================================
-
-# SETTINGS
-
-# ============================================================
-
 OUTPUT_FILE = "output_bosnia3.txt"
 
-BH_URL = (
-"https://raw.githubusercontent.com/chiewww/BHposta/main/"
-"bh_posta_countries.txt"
-)
-
-MOSTAR_URL = (
-"https://raw.githubusercontent.com/chiewww/mostarpost/main/"
-"output.txt"
-)
-
-SRPSKE_URL = (
-"https://raw.githubusercontent.com/chiewww/srpskepost/main/"
-"output.txt"
-)
-
-# Bosnia-Herzegovina (#29) is excluded completely.
+BH_URL = "https://raw.githubusercontent.com/chiewww/BHposta/main/bh_posta_countries.txt"
+MOSTAR_URL = "https://raw.githubusercontent.com/chiewww/mostarpost/main/output.txt"
+SRPSKE_URL = "https://raw.githubusercontent.com/chiewww/srpskepost/main/output.txt"
 
 EXCLUDED_NUMBERS = {29}
-
-# ============================================================
-
-# MASTER LIST — 248 POSTCROSSING DESTINATIONS
-
-# ============================================================
 
 MASTER_LIST = """
 1 Afghanistan
@@ -285,605 +260,431 @@ MASTER_LIST = """
 248 Zimbabwe
 """
 
-# ============================================================
-
-# PARSE MASTER LIST
-
-# ============================================================
 
 def parse_master_list():
-master = {}
+    master = {}
 
-```
-for line in MASTER_LIST.strip().splitlines():
-    match = re.match(r"^\s*(\d+)\s+(.+?)\s*$", line)
+    for line in MASTER_LIST.strip().splitlines():
+        match = re.match(r"^\s*(\d+)\s+(.+?)\s*$", line)
 
-    if match:
-        number = int(match.group(1))
-        name = match.group(2)
+        if match:
+            number = int(match.group(1))
+            name = match.group(2)
 
-        if number not in EXCLUDED_NUMBERS:
-            master[number] = name
+            if number not in EXCLUDED_NUMBERS:
+                master[number] = name
 
-expected = 248 - len(EXCLUDED_NUMBERS)
+    expected = 248 - len(EXCLUDED_NUMBERS)
 
-if len(master) != expected:
-    raise RuntimeError(
-        f"Expected {expected} usable master destinations, "
-        f"but found {len(master)}."
-    )
+    if len(master) != expected:
+        raise RuntimeError(
+            f"Expected {expected} usable master destinations, "
+            f"but found {len(master)}."
+        )
 
-return master
-```
+    return master
 
-# ============================================================
-
-# DOWNLOAD TEXT FILE
-
-# ============================================================
 
 def download_text(url):
-request = Request(
-url,
-headers={"User-Agent": "Mozilla/5.0"}
-)
+    request = Request(
+        url,
+        headers={"User-Agent": "Mozilla/5.0"}
+    )
 
-```
-with urlopen(request, timeout=30) as response:
-    return response.read().decode("utf-8")
-```
+    with urlopen(request, timeout=30) as response:
+        return response.read().decode("utf-8")
 
-# ============================================================
-
-# EXTRACT POSTCROSSING NUMBER
-
-# ============================================================
 
 def extract_number_from_line(line):
-"""
-Extract a destination number only when the number is at
-the beginning of the line.
+    match = re.match(
+        r"^\s*(\d{1,3})(?:\s+|[.)\-:]\s*)",
+        line
+    )
 
-```
-Accepted examples:
-    1 Afghanistan
-    1. Afghanistan
-    1 - Afghanistan
-    1: Afghanistan
+    if not match:
+        return None
 
-??? is ignored.
-"""
+    number = int(match.group(1))
 
-match = re.match(
-    r"^\s*(\d{1,3})(?:\s+|[.)\-:]\s*)",
-    line
-)
+    if 1 <= number <= 248:
+        return number
 
-if not match:
     return None
 
-number = int(match.group(1))
-
-if 1 <= number <= 248:
-    return number
-
-return None
-```
-
-# ============================================================
-
-# EXTRACT ALL LISTED DESTINATIONS
-
-# ============================================================
 
 def extract_all_listed_numbers(text, master_numbers):
-numbers = set()
+    numbers = set()
 
-```
-for line in text.splitlines():
-    number = extract_number_from_line(line)
+    for line in text.splitlines():
+        number = extract_number_from_line(line)
 
-    if number is not None and number in master_numbers:
-        numbers.add(number)
+        if number is not None and number in master_numbers:
+            numbers.add(number)
 
-return numbers
-```
+    return numbers
 
-# ============================================================
-
-# NORMALIZE HEADING
-
-# ============================================================
 
 def normalize_heading(line):
-value = line.strip().upper()
-value = re.sub(r"\s+", " ", value)
-value = value.rstrip(":").strip()
-return value
+    value = line.strip().upper()
+    value = re.sub(r"\s+", " ", value)
+    value = value.rstrip(":").strip()
+    return value
 
-# ============================================================
-
-# BH POSTA
-
-# ============================================================
 
 def parse_bh_suspensions(text, master_numbers):
-"""
-BH Posta suspensions are ONLY destinations listed under:
+    """
+    BH Posta:
+    Suspended = destinations under SUSPENDED COUNTRIES
+    plus destinations under UNKNOWN COUNTRIES.
+    """
 
-```
-    SUSPENDED COUNTRIES
-    UNKNOWN COUNTRIES
+    lines = text.splitlines()
+    suspended = set()
 
-Both sections are combined.
+    headings = [
+        "SUSPENDED COUNTRIES",
+        "UNKNOWN COUNTRIES",
+    ]
 
-??? is ignored.
-Duplicate numbers are removed automatically.
-"""
+    for target in headings:
+        in_section = False
 
-lines = text.splitlines()
-suspended_numbers = set()
+        for line in lines:
+            heading = normalize_heading(line)
 
-relevant_headings = {
-    "SUSPENDED COUNTRIES",
-    "UNKNOWN COUNTRIES",
-}
+            if heading == target:
+                in_section = True
+                continue
 
-# Find each relevant section independently.
-for target_heading in relevant_headings:
+            if not in_section:
+                continue
 
+            number = extract_number_from_line(line)
+
+            if number is not None and number in master_numbers:
+                suspended.add(number)
+
+            # Only stop when another known major section begins.
+            if heading in {
+                "AVAILABLE COUNTRIES",
+                "ACTIVE COUNTRIES",
+                "COUNTRY LIST",
+                "SUMMARY",
+            }:
+                break
+
+    return suspended
+
+
+def parse_mostar_listed(text, master_numbers):
+    return extract_all_listed_numbers(
+        text,
+        master_numbers
+    )
+
+
+def parse_mostar_suspensions(text, master_numbers):
+    listed = parse_mostar_listed(
+        text,
+        master_numbers
+    )
+
+    return master_numbers - listed
+
+
+def parse_srpske_suspensions(text, master_numbers):
+    """
+    Srpske:
+    ONLY destinations listed under SUSPENDOVANE ZEMLJE.
+
+    UKUPNO is ignored and does not determine the list.
+    """
+
+    lines = text.splitlines()
+    suspended = set()
     in_section = False
 
     for line in lines:
-
         heading = normalize_heading(line)
 
-        if heading == target_heading:
+        if heading == "SUSPENDOVANE ZEMLJE":
             in_section = True
             continue
 
         if not in_section:
             continue
 
-        # Stop ONLY at another obvious section heading.
-        # Do not stop merely because a line is uppercase.
+        # UKUPNO is only a count.
+        if heading.startswith("UKUPNO"):
+            continue
+
+        # Do not treat arbitrary uppercase text as a boundary.
+        # Stop only at known section headings.
         if heading in {
-            "AVAILABLE COUNTRIES",
-            "ACTIVE COUNTRIES",
-            "COUNTRIES",
-            "COUNTRY LIST",
-            "SUMMARY",
+            "DOZVOLJENE ZEMLJE",
+            "DOZVOLJENE DRŽAVE",
+            "DOZVOLJENE DRZAVE",
+            "OSTALE ZEMLJE",
+            "OSTALE DRŽAVE",
+            "OSTALE DRZAVE",
+            "ZABRANJENE ZEMLJE",
+            "ZABRANJENE DRŽAVE",
+            "ZABRANJENE DRZAVE",
         }:
             break
 
         number = extract_number_from_line(line)
 
-        if (
-            number is not None
-            and number in master_numbers
-        ):
-            suspended_numbers.add(number)
+        if number is not None and number in master_numbers:
+            suspended.add(number)
 
-return suspended_numbers
-```
+    return suspended
 
-# ============================================================
-
-# MOSTAR
-
-# ============================================================
-
-def parse_mostar_listed(text, master_numbers):
-"""
-All master destinations actually listed in the Mostar
-output file.
-"""
-
-```
-return extract_all_listed_numbers(
-    text,
-    master_numbers
-)
-```
-
-def parse_mostar_suspensions(text, master_numbers):
-"""
-A Mostar suspension is any usable master destination
-that is NOT listed in the Mostar output file.
-"""
-
-```
-listed = parse_mostar_listed(
-    text,
-    master_numbers
-)
-
-return master_numbers - listed
-```
-
-# ============================================================
-
-# SRPSKE
-
-# ============================================================
-
-def parse_srpske_suspensions(text, master_numbers):
-"""
-Srpske suspensions are ONLY the destinations listed under:
-
-```
-    SUSPENDOVANE ZEMLJE
-
-UKUPNO is informational and is NEVER used to determine
-which countries are suspended.
-"""
-
-lines = text.splitlines()
-
-suspended_numbers = set()
-in_suspended_section = False
-
-for line in lines:
-
-    heading = normalize_heading(line)
-
-    # ----------------------------------------------------
-    # Start the requested section.
-    # ----------------------------------------------------
-
-    if heading == "SUSPENDOVANE ZEMLJE":
-        in_suspended_section = True
-        continue
-
-    if not in_suspended_section:
-        continue
-
-    # ----------------------------------------------------
-    # UKUPNO is only a count.
-    # It does NOT end the section.
-    # ----------------------------------------------------
-
-    if heading.startswith("UKUPNO"):
-        continue
-
-    # ----------------------------------------------------
-    # Stop only at another known section heading.
-    # ----------------------------------------------------
-
-    if heading in {
-        "DOZVOLJENE ZEMLJE",
-        "DOZVOLJENE DRŽAVE",
-        "DOZVOLJENE DRZAVE",
-        "OSTALE ZEMLJE",
-        "OSTALE DRŽAVE",
-        "OSTALE DRZAVE",
-        "ZABRANJENE ZEMLJE",
-        "ZABRANJENE DRŽAVE",
-        "ZABRANJENE DRZAVE",
-    }:
-        break
-
-    # ----------------------------------------------------
-    # Read numbered destinations only.
-    # ----------------------------------------------------
-
-    number = extract_number_from_line(line)
-
-    if (
-        number is not None
-        and number in master_numbers
-    ):
-        suspended_numbers.add(number)
-
-return suspended_numbers
-```
-
-# ============================================================
-
-# WRITE STANDARD SECTION
-
-# ============================================================
 
 def write_section(file, title, numbers, master):
+    file.write(f"{title}\n")
+    file.write("=" * len(title) + "\n")
+    file.write(f"Total: {len(numbers)}\n\n")
 
-```
-file.write(f"{title}\n")
-file.write("=" * len(title) + "\n")
-file.write(f"Total: {len(numbers)}\n\n")
+    for number in sorted(numbers):
+        file.write(
+            f"{number} {master[number]}\n"
+        )
 
-for number in sorted(numbers):
-    file.write(
-        f"{number} {master[number]}\n"
-    )
+    file.write("\n")
 
-file.write("\n")
-```
-
-# ============================================================
-
-# MAIN
-
-# ============================================================
 
 def main():
+    master = parse_master_list()
+    master_numbers = set(master.keys())
 
-```
-# --------------------------------------------------------
-# MASTER LIST
-# --------------------------------------------------------
+    print(f"Usable master destinations: {len(master_numbers)}")
 
-master = parse_master_list()
-master_numbers = set(master.keys())
+    print("Downloading BH Posta...")
+    bh_text = download_text(BH_URL)
 
-print(
-    f"Usable master destinations: "
-    f"{len(master_numbers)}"
-)
+    print("Downloading Mostar...")
+    mostar_text = download_text(MOSTAR_URL)
 
-# --------------------------------------------------------
-# DOWNLOAD SOURCE FILES
-# --------------------------------------------------------
+    print("Downloading Srpske...")
+    srpske_text = download_text(SRPSKE_URL)
 
-print("Downloading BH Posta...")
-bh_text = download_text(BH_URL)
+    # ========================================================
+    # BH POSTA
+    # ========================================================
 
-print("Downloading Mostar...")
-mostar_text = download_text(MOSTAR_URL)
-
-print("Downloading Srpske...")
-srpske_text = download_text(SRPSKE_URL)
-
-# ========================================================
-# BH POSTA
-# ========================================================
-
-bh_suspended = parse_bh_suspensions(
-    bh_text,
-    master_numbers
-)
-
-bh_listed = extract_all_listed_numbers(
-    bh_text,
-    master_numbers
-)
-
-# ========================================================
-# MOSTAR
-# ========================================================
-
-mostar_listed = parse_mostar_listed(
-    mostar_text,
-    master_numbers
-)
-
-mostar_suspended = (
-    master_numbers - mostar_listed
-)
-
-# ========================================================
-# SRPSKE
-# ========================================================
-
-srpske_suspended = parse_srpske_suspensions(
-    srpske_text,
-    master_numbers
-)
-
-srpske_listed = extract_all_listed_numbers(
-    srpske_text,
-    master_numbers
-)
-
-# ========================================================
-# SECTION 1
-# ========================================================
-
-suspended_at_least_one = (
-    bh_suspended
-    | mostar_suspended
-    | srpske_suspended
-)
-
-# ========================================================
-# SECTION 2
-#
-# Master destinations NOT LISTED in ANY source file.
-# ========================================================
-
-all_listed_on_source_files = (
-    bh_listed
-    | mostar_listed
-    | srpske_listed
-)
-
-missing_from_all_three = (
-    master_numbers
-    - all_listed_on_source_files
-)
-
-# ========================================================
-# WRITE OUTPUT
-# ========================================================
-
-with open(
-    OUTPUT_FILE,
-    "w",
-    encoding="utf-8"
-) as file:
-
-    # ====================================================
-    # 1. SUSPENDED AT LEAST ONE
-    # ====================================================
-
-    title = "1. Suspended at least one"
-
-    file.write(f"{title}\n")
-    file.write("=" * len(title) + "\n")
-
-    file.write(
-        "Countries suspended by BH Posta, Mostar, "
-        "and/or Srpske.\n"
+    bh_suspended = parse_bh_suspensions(
+        bh_text,
+        master_numbers
     )
 
-    file.write(
-        "B = BH Posta, M = Mostar, S = Srpske\n"
+    bh_listed = extract_all_listed_numbers(
+        bh_text,
+        master_numbers
     )
 
-    file.write(
-        f"Total: {len(suspended_at_least_one)}\n\n"
+    # ========================================================
+    # MOSTAR
+    # ========================================================
+
+    mostar_listed = parse_mostar_listed(
+        mostar_text,
+        master_numbers
     )
 
-    for number in sorted(
-        suspended_at_least_one
-    ):
+    mostar_suspended = (
+        master_numbers - mostar_listed
+    )
 
-        letters = []
+    # ========================================================
+    # SRPSKE
+    # ========================================================
 
-        if number in bh_suspended:
-            letters.append("B")
+    srpske_suspended = parse_srpske_suspensions(
+        srpske_text,
+        master_numbers
+    )
 
-        if number in mostar_suspended:
-            letters.append("M")
+    srpske_listed = extract_all_listed_numbers(
+        srpske_text,
+        master_numbers
+    )
 
-        if number in srpske_suspended:
-            letters.append("S")
+    # ========================================================
+    # SECTION 1
+    # ========================================================
 
+    suspended_at_least_one = (
+        bh_suspended
+        | mostar_suspended
+        | srpske_suspended
+    )
+
+    # ========================================================
+    # SECTION 2
+    # ========================================================
+
+    all_listed = (
+        bh_listed
+        | mostar_listed
+        | srpske_listed
+    )
+
+    missing_from_all_three = (
+        master_numbers - all_listed
+    )
+
+    # ========================================================
+    # OUTPUT
+    # ========================================================
+
+    with open(
+        OUTPUT_FILE,
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        # ----------------------------------------------------
+        # 1. SUSPENDED AT LEAST ONE
+        # ----------------------------------------------------
+
+        title = "1. Suspended at least one"
+
+        file.write(f"{title}\n")
+        file.write("=" * len(title) + "\n")
         file.write(
-            f"{number} {master[number]} "
-            f"({', '.join(letters)})\n"
+            "Countries suspended by BH Posta, Mostar, "
+            "and/or Srpske.\n"
+        )
+        file.write(
+            "B = BH Posta, M = Mostar, S = Srpske\n"
+        )
+        file.write(
+            f"Total: {len(suspended_at_least_one)}\n\n"
         )
 
-    file.write("\n")
+        for number in sorted(suspended_at_least_one):
+            letters = []
 
-    # ====================================================
-    # 2. MISSING FROM ALL 3 TEXT FILES
-    # ====================================================
+            if number in bh_suspended:
+                letters.append("B")
 
-    title = "2. Missing from all 3 text files"
+            if number in mostar_suspended:
+                letters.append("M")
 
-    file.write(f"{title}\n")
-    file.write("=" * len(title) + "\n")
+            if number in srpske_suspended:
+                letters.append("S")
 
-    file.write(
-        "Countries from the 248-country master list "
-        "that are NOT LISTED on the BH Posta, Mostar, "
-        "or Srpske text files.\n"
-    )
+            file.write(
+                f"{number} {master[number]} "
+                f"({', '.join(letters)})\n"
+            )
 
-    file.write(
-        f"Total: {len(missing_from_all_three)}\n\n"
-    )
+        file.write("\n")
 
-    for number in sorted(
-        missing_from_all_three
-    ):
+        # ----------------------------------------------------
+        # 2. MISSING FROM ALL 3
+        # ----------------------------------------------------
 
+        title = "2. Missing from all 3 text files"
+
+        file.write(f"{title}\n")
+        file.write("=" * len(title) + "\n")
         file.write(
-            f"{number} {master[number]}\n"
+            "Countries from the 248-country master list "
+            "that are NOT LISTED on the BH Posta, Mostar, "
+            "or Srpske text files.\n"
+        )
+        file.write(
+            f"Total: {len(missing_from_all_three)}\n\n"
         )
 
-    file.write("\n")
+        for number in sorted(missing_from_all_three):
+            file.write(
+                f"{number} {master[number]}\n"
+            )
 
-    # ====================================================
-    # 3. BH POSTA SUSPENSIONS
-    # ====================================================
+        file.write("\n")
 
-    write_section(
-        file,
-        "3. BH Posta suspensions",
-        bh_suspended,
-        master
-    )
+        # ----------------------------------------------------
+        # 3. BH POSTA
+        # ----------------------------------------------------
 
-    # ====================================================
-    # 4. MOSTAR SUSPENSIONS
-    # ====================================================
-
-    write_section(
-        file,
-        "4. Mostar suspensions",
-        mostar_suspended,
-        master
-    )
-
-    # ====================================================
-    # 5. SRPSKE SUSPENSIONS
-    # ====================================================
-
-    title = "5. Srpske suspensions"
-
-    file.write(f"{title}\n")
-    file.write("=" * len(title) + "\n")
-
-    file.write(
-        "Suspended countries are ONLY those listed "
-        "under 'SUSPENDOVANE ZEMLJE' in the Srpske "
-        "output file.\n"
-    )
-
-    file.write(
-        f"Total: {len(srpske_suspended)}\n\n"
-    )
-
-    for number in sorted(
-        srpske_suspended
-    ):
-
-        file.write(
-            f"{number} {master[number]}\n"
+        write_section(
+            file,
+            "3. BH Posta suspensions",
+            bh_suspended,
+            master
         )
 
-    file.write("\n")
+        # ----------------------------------------------------
+        # 4. MOSTAR
+        # ----------------------------------------------------
 
-# ========================================================
-# CONSOLE SUMMARY
-# ========================================================
+        write_section(
+            file,
+            "4. Mostar suspensions",
+            mostar_suspended,
+            master
+        )
 
-print()
-print("==========================================")
-print("Bosnia Three List updated successfully")
-print("==========================================")
+        # ----------------------------------------------------
+        # 5. SRPSKE
+        # ----------------------------------------------------
 
-print(
-    f"Master destinations used: "
-    f"{len(master_numbers)}"
-)
+        title = "5. Srpske suspensions"
 
-print(
-    "Excluded destination #29: "
-    "Bosnia-Herzegovina"
-)
+        file.write(f"{title}\n")
+        file.write("=" * len(title) + "\n")
+        file.write(
+            "Suspended countries are ONLY those listed "
+            "under 'SUSPENDOVANE ZEMLJE' in the Srpske "
+            "output file.\n"
+        )
+        file.write(
+            f"Total: {len(srpske_suspended)}\n\n"
+        )
 
-print(
-    f"Suspended at least one: "
-    f"{len(suspended_at_least_one)}"
-)
+        for number in sorted(srpske_suspended):
+            file.write(
+                f"{number} {master[number]}\n"
+            )
 
-print(
-    f"Missing from all 3 files: "
-    f"{len(missing_from_all_three)}"
-)
+        file.write("\n")
 
-print(
-    f"BH Posta suspensions: "
-    f"{len(bh_suspended)}"
-)
+    # ========================================================
+    # CONSOLE SUMMARY
+    # ========================================================
 
-print(
-    f"Mostar suspensions: "
-    f"{len(mostar_suspended)}"
-)
+    print()
+    print("==========================================")
+    print("Bosnia Three List updated successfully")
+    print("==========================================")
+    print(f"Master destinations used: {len(master_numbers)}")
+    print("Excluded destination #29: Bosnia-Herzegovina")
+    print(
+        f"Suspended at least one: "
+        f"{len(suspended_at_least_one)}"
+    )
+    print(
+        f"Missing from all 3 files: "
+        f"{len(missing_from_all_three)}"
+    )
+    print(
+        f"BH Posta suspensions: "
+        f"{len(bh_suspended)}"
+    )
+    print(
+        f"Mostar suspensions: "
+        f"{len(mostar_suspended)}"
+    )
+    print(
+        f"Srpske suspensions: "
+        f"{len(srpske_suspended)}"
+    )
+    print()
+    print(f"Output file: {OUTPUT_FILE}")
 
-print(
-    f"Srpske suspensions: "
-    f"{len(srpske_suspended)}"
-)
 
-print()
-print(
-    f"Output file: {OUTPUT_FILE}"
-)
-```
-
-if **name** == "**main**":
-main()
+if __name__ == "__main__":
+    main()
