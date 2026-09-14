@@ -1,87 +1,51 @@
-name: Bosnia Three List
+name: Update Bosnia Three List
 
 on:
-
-  # Run automatically every hour.
   schedule:
-    - cron: "0 * * * *"
-
-  # Allow you to run it manually from:
-  # GitHub → Actions → Update Bosnia Three List → Run workflow
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
 
-# Prevent two copies of this workflow from trying
-# to update the repository at the same time.
 concurrency:
   group: bosnia-three-list
   cancel-in-progress: false
 
-
 jobs:
-
   update:
     runs-on: ubuntu-latest
 
     steps:
-
-      # ------------------------------------------------------
-      # Get the current bosnia3 repository
-      # ------------------------------------------------------
-
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-
-      # ------------------------------------------------------
-      # Install Python
-      # ------------------------------------------------------
-
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
-
-      # ------------------------------------------------------
-      # Generate bosnia_three_list.txt
-      # ------------------------------------------------------
-
-      - name: Generate bosnia_three_list.txt
+      - name: Generate output_bosnia3.txt
         run: |
           python generate_bosnia_three_list.py
 
-
-      # ------------------------------------------------------
-      # Commit and push only when the file changed
-      # ------------------------------------------------------
-
       - name: Update GitHub
         run: |
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add bosnia_three_list.txt
+          git add output_bosnia3.txt
 
-          # Nothing changed.
           if git diff --cached --quiet; then
             echo "No changes detected."
             exit 0
           fi
 
-          # Commit the newly generated list.
-          git commit -m "Update bosnia_three_list"
+          git commit -m "Update output_bosnia3"
 
-          # Get the latest version of main.
           git fetch origin main
-
-          # Put our new commit on top of the latest main.
           git rebase origin/main
 
-          # Push the updated file.
           git push origin HEAD:main
